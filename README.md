@@ -1,4 +1,4 @@
-# Service Scaffold
+# Service skeleton
 
 Un template robuste pour organiser et déployer des services en production de manière cohérente et maintenable.
 
