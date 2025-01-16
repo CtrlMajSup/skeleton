@@ -20,7 +20,6 @@ Ce template fournit une structure standardisée pour déployer et gérer des ser
 ├── docs/            # Documentation complète du service
 ├── scripts/         # Scripts de gestion et maintenance
 ├── traits/          # Configurations de base (remplace les configs existantes)
-├── shared-traits/   # Configurations partagées (complète les configs existantes)
 └── events/          # Logs des scripts et événements
 ```
 
