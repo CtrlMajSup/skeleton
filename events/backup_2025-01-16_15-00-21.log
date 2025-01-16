@@ -1,0 +1,5 @@
+2025-01-16 15:00:21 [INFO] Démarrage du backup...
+tar: Suppression de « / » au début des noms des membres
+tar: Suppression de « / » au début des liens physiques
+2025-01-16 15:00:21 [SUCCESS] Sauvegarde terminée avec succès: /home/guillaume/Bureau/skeleton/backups/backup_2025-01-16_15-00-21.tar.gz
+2025-01-16 15:00:21 [INFO] Taille de l'archive: 4,0K

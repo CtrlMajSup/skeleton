@@ -4,24 +4,60 @@
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
 NC='\033[0m'  # No Color
 
 # Variables à configurer
-# Variables à configurer
-SCRIPT_DIR=$(dirname "$(realpath "$0")")  # Répertoire où se trouve le script (./scripts)
-PROJECT_ROOT=$(realpath "$SCRIPT_DIR/..")  # Racine du projet (le dossier parent de ./scripts)
-OUTPUT_DIR="$PROJECT_ROOT/backups"  # Le dossier de sauvegarde est relatif à la racine du projet
-SOURCE_DIRS=("$PROJECT_ROOT/instances/natives/example/" "$PROJECT_ROOT/traits")  # Répertoires à sauvegarder (exemples)
-
+SCRIPT_DIR=$(dirname "$(realpath "$0")")
+PROJECT_ROOT=$(realpath "$SCRIPT_DIR/..")
+OUTPUT_DIR="$PROJECT_ROOT/backups"
+SOURCE_DIRS=("$PROJECT_ROOT/instances/natives/example/" "$PROJECT_ROOT/traits")
+LOGS_DIR="$PROJECT_ROOT/events"
+LOG_FILE="$LOGS_DIR/backup_$(date +%Y-%m-%d_%H-%M-%S).log"
 
 # Options
-VERBOSE=0
-DRY_RUN=0
+VERBOSE=false
+DRY_RUN=false
+
+# Fonction pour écrire dans les logs
+log() {
+    local level="$1"
+    local message="$2"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${timestamp} [${level}] ${message}" >> "$LOG_FILE"
+}
+
+# Fonction pour afficher les messages d'erreur
+error() {
+    echo -e "${RED}[ERREUR]${NC} $1" >&2
+    log "ERROR" "$1"
+}
+
+# Fonction pour afficher les messages d'information
+info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+    log "INFO" "$1"
+}
+
+# Fonction pour afficher les messages de succès
+success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+    log "SUCCESS" "$1"
+}
+
+# Fonction pour afficher les messages en mode verbose
+verbose() {
+    if [ "$VERBOSE" = true ]; then
+        echo -e "${PURPLE}[VERBOSE]${NC} $1"
+        log "VERBOSE" "$1"
+    fi
+}
 
 # Fonction d'affichage de l'aide
 help() {
     echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║                   MADE-BACKUP HELP                    ║${NC}"
+    echo -e "${BLUE}║                   MADE-BACKUP HELP                         ║${NC}"
     echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
     echo -e "${CYAN}Description:${NC}"
     echo -e "  Ce script de backup des dossiers renseigner dans SOURCE_DIRS"
@@ -37,70 +73,69 @@ help() {
     exit 0
 }
 
+# Création du répertoire de logs si nécessaire
+if [ ! -d "$LOGS_DIR" ]; then
+    mkdir -p "$LOGS_DIR"
+    if [ $? -ne 0 ]; then
+        error "Impossible de créer le répertoire de logs"
+        exit 1
+    fi
+fi
+
 # Analyser les options
 while [[ "$1" != "" ]]; do
     case $1 in
-        -h | --help )          help
-                               ;;
-        -v | --verbose )       VERBOSE=1
-                               ;;
-        -d | --dry-run )       DRY_RUN=1
-                               ;;
+        -h | --help )          help ;;
+        -v | --verbose )       VERBOSE=true
+                              verbose "Mode verbose activé" ;;
+        -d | --dry-run )       DRY_RUN=true
+                              info "Mode dry-run activé" ;;
         -o | --output )        shift
-                               OUTPUT_DIR=$1
-                               ;;
+                              OUTPUT_DIR=$1
+                              verbose "Répertoire de sortie défini: $OUTPUT_DIR" ;;
         -s | --sources )       shift
-                               SOURCE_DIRS=($@)
-                               break
-                               ;;
-        * )                    help
-                               ;;
+                              SOURCE_DIRS=($@)
+                              verbose "Sources définies: ${SOURCE_DIRS[*]}"
+                              break ;;
+        * )                    help ;;
     esac
     shift
 done
 
 # Vérifier si le répertoire de sortie existe
 if [ ! -d "$OUTPUT_DIR" ]; then
-    echo -e "${RED}Erreur : Le répertoire de sortie $OUTPUT_DIR n'existe pas.${NC}"
+    error "Le répertoire de sortie $OUTPUT_DIR n'existe pas."
     exit 1
 fi
 
-# Générer le nom de l'archive avec la date actuelle
+# Générer le nom de l'archive
 DATE=$(date +%Y-%m-%d_%H-%M-%S)
 ARCHIVE_NAME="backup_$DATE.tar.gz"
 ARCHIVE_PATH="$OUTPUT_DIR/$ARCHIVE_NAME"
 
-# Afficher un message de début
-echo -e "${GREEN}Démarrage du backup...${NC}"
-echo -e "${YELLOW}Sauvegarde des répertoires suivants :${NC}"
+# Logger les informations de démarrage
+info "Démarrage du backup..."
+verbose "Sources à sauvegarder:"
 for DIR in "${SOURCE_DIRS[@]}"; do
-    echo -e "  - $DIR"
+    verbose "  - $DIR"
 done
 
-# Mode Dry-run (simulation)
-if [ $DRY_RUN -eq 1 ]; then
-    echo -e "${YELLOW}Mode dry-run activé. Aucune archive ne sera créée.${NC}"
-    echo -e "Voici ce qui serait exécuté :"
-    echo -e "  tar -czf $ARCHIVE_PATH ${SOURCE_DIRS[@]}"
+# Mode Dry-run
+if [ "$DRY_RUN" = true ]; then
+    info "Simulation de la commande: tar -czf $ARCHIVE_PATH ${SOURCE_DIRS[*]}"
     exit 0
 fi
 
-# Mode verbose (affiche chaque étape)
-if [ $VERBOSE -eq 1 ]; then
-    echo -e "${YELLOW}Mode verbose activé.${NC}"
-    echo -e "Création de l'archive : $ARCHIVE_PATH"
-fi
+# Créer le backup
+verbose "Création de l'archive: $ARCHIVE_PATH"
+tar -czf "$ARCHIVE_PATH" "${SOURCE_DIRS[@]}" 2>> "$LOG_FILE"
 
-# Exécuter le backup
-if [ $VERBOSE -eq 1 ]; then
-    echo -e "${GREEN}Création de l'archive...${NC}"
-fi
-tar -czf "$ARCHIVE_PATH" "${SOURCE_DIRS[@]}"
-
-# Vérification du succès de l'opération
+# Vérification du résultat
 if [ $? -eq 0 ]; then
-    echo -e "${GREEN}Sauvegarde terminée avec succès : $ARCHIVE_PATH${NC}"
+    success "Sauvegarde terminée avec succès: $ARCHIVE_PATH"
+    ARCHIVE_SIZE=$(du -h "$ARCHIVE_PATH" | cut -f1)
+    info "Taille de l'archive: $ARCHIVE_SIZE"
 else
-    echo -e "${RED}Erreur lors de la création de l'archive.${NC}"
+    error "Échec de la création de l'archive"
     exit 1
 fi

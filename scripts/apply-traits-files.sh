@@ -9,6 +9,14 @@ PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
+# Fonction pour écrire dans les logs
+log() {
+    local level="$1"
+    local message="$2"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    echo -e "${timestamp} [${level}] ${message}" >> "$LOG_FILE"
+}
+
 # Fonction pour afficher le help
 show_help() {
     echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
@@ -33,22 +41,26 @@ show_help() {
 # Fonction pour afficher les messages d'erreur
 error() {
     echo -e "${RED}[ERREUR]${NC} $1" >&2
+    log "ERROR" "$1"
 }
 
 # Fonction pour afficher les messages d'information
 info() {
     echo -e "${BLUE}[INFO]${NC} $1"
+    log "INFO" "$1"
 }
 
 # Fonction pour afficher les messages de succès
 success() {
     echo -e "${GREEN}[SUCCESS]${NC} $1"
+    log "SUCCESS" "$1"
 }
 
 # Fonction pour afficher les messages en mode verbose
 verbose() {
     if [ "$VERBOSE" = true ]; then
         echo -e "${PURPLE}[VERBOSE]${NC} $1"
+        log "VERBOSE" "$1"
     fi
 }
 
@@ -56,6 +68,9 @@ verbose() {
 SCRIPT_PATH=$(readlink -f "$0")
 SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
 SOURCE_DIR="${SCRIPT_DIR}/../traits"
+# Définition du répertoire de logs
+LOGS_DIR="${SCRIPT_DIR}/../events"
+LOG_FILE="${LOGS_DIR}/apply-traits-files-$(date +%Y%m%d_%H%M%S).log"
 
 # Initialisation des variables
 VERBOSE=false
@@ -101,6 +116,20 @@ fi
 if [ ! -d "$SOURCE_DIR" ]; then
     error "Le répertoire source $SOURCE_DIR n'existe pas"
     exit 1
+fi
+
+# Vérification et création du répertoire de logs
+if [ ! -d "$LOGS_DIR" ]; then
+    if [ "$DRY_RUN" = false ]; then
+        verbose "Création du répertoire de logs $LOGS_DIR"
+        mkdir -p "$LOGS_DIR"
+        if [ $? -ne 0 ]; then
+            error "Impossible de créer le répertoire de logs"
+            exit 1
+        fi
+    else
+        info "[DRY-RUN] Le répertoire $LOGS_DIR serait créé"
+    fi
 fi
 
 # Fonction pour traiter un fichier
