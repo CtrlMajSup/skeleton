@@ -27,5 +27,5 @@ Les fichiers de configuration dans le répertoire `traits/` suivent une **nomenc
   
 **Exemple :**
 ```bash
-/etc/apache2/sites-available/map.conf -> /srv/service/traits/_etc_apache2_site-available_map.conf
+/etc/apache2/sites-available/map.conf -> /srv/service/traits/_etc_apache2_site-available_map.conf 
 ```
