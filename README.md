@@ -1,6 +1,6 @@
 # Service skeleton
 
-Un template robuste pour organiser et déployer des services en production de manière cohérente et maintenable.
+Un template pour organiser et déployer des services en production de manière cohérente et maintenable en bare métal.
 
 ## 🎯 Objectif
 
